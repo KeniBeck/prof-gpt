@@ -29,7 +29,7 @@ const LoginFrom = () => {
         <>
             <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="w-[500px] bg-amber-50/90 backdrop-blur-sm border-gray-100 shadow-lg p-4">
+                className="w-[500px] bg-amber-100/20 backdrop-blur-sm border border-gray-200 shadow-lg p-4 rounded-2xl">
                 <div className="text-2xl font-bold text-gray-900">Iniciar Sesión</div>
                 <div className="text-gray-700 mb-6">Accede a tu asistente educativo personalizado</div>
 

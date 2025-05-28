@@ -56,7 +56,7 @@ export function FloatingInput({
           className={`
           block px-8 py-3 w-full text-sm text-gray-900 bg-transparent 
           rounded-lg border border-gray-300 appearance-none
-          focus:outline-none focus:ring-amber-300 focus:border-amber-300
+          focus:outline-none focus:ring-amber-200/90 focus:border-amber-200/90
           transition-all duration-200 ease-in-out
           ${className}
         `}
