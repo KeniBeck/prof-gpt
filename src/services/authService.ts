@@ -1,6 +1,4 @@
-import { ClientSecretCredential } from "@azure/identity";
-import { Client } from "@microsoft/microsoft-graph-client";
-import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
+import axios from 'axios';
 
 export interface AuthUser {
   id: string;
@@ -10,111 +8,53 @@ export interface AuthUser {
 }
 
 export class AuthService {
-  private graphClient: Client;
-  
+  private apiUrl: string;
+
   constructor() {
-    // Estos valores se deben obtener de variables de entorno
-    const tenantId = process.env.AZURE_TENANT_ID || '';
-    const clientId = process.env.AZURE_CLIENT_ID || '';
-    const clientSecret = process.env.AZURE_CLIENT_SECRET || '';
-    
-    // Crear credenciales para la aplicación
-    const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-    
-    // Crear proveedor de autenticación para Microsoft Graph
-    const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-      scopes: ['https://graph.microsoft.com/.default']
-    });
-    
-    // Inicializar cliente de Microsoft Graph
-    this.graphClient = Client.initWithMiddleware({
-      authProvider
-    });
+    // URL del backend - configura según tu entorno
+    this.apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/';
   }
-  
+
   /**
-   * Verifica si un usuario es profesor mediante su pertenencia al grupo "Docentes Ameritec"
+   * Verifica si un usuario es profesor (temporalmente por dominio)
    * @param userEmail Email institucional del usuario
-   * @returns Datos del usuario con indicador si es profesor
+   * @returns Datos del usuario con indicador si es profesor (temporal)
    */
   async validateTeacher(userEmail: string): Promise<AuthUser | null> {
     try {
-      // Obtener información del usuario por su email
-      const userResponse = await this.graphClient
-        .api(`/users`)
-        .filter(`mail eq '${userEmail}'`)
-        .get();
+      // Llamar al backend para validar el usuario
+      const response = await axios.post(`${this.apiUrl}/microsoft-graph/validate-teacher`, {
+        email: userEmail
+      });
       
-      if (!userResponse.value || userResponse.value.length === 0) {
-        return null;
+      // Verificar la respuesta
+      if (response.data.success && response.data.user) {
+        // Si hay una nota de advertencia, muéstrala
+        if (response.data.note) {
+          console.warn(response.data.note);
+        }
+        
+        return response.data.user;
       }
       
-      const user = userResponse.value[0];
-      
-      // ID del grupo "Docentes Ameritec" que vimos en la captura de pantalla
-      const docentesGroupId = "fdd3e1b4-260a-423e-b669-3d53562626b0";
-      
-      // Verificar si el usuario es miembro del grupo Docentes Ameritec
-      const membershipResponse = await this.graphClient
-        .api(`/groups/${docentesGroupId}/members`)
-        .filter(`id eq '${user.id}'`)
-        .get();
-      
-      // Si el usuario está en el grupo, es profesor
-      const isTeacher = membershipResponse.value && membershipResponse.value.length > 0;
-      
-      return {
-        id: user.id,
-        displayName: user.displayName,
-        email: userEmail,
-        isTeacher: isTeacher
-      };
-      
+      return null;
     } catch (error) {
-      console.error('Error al validar profesor:', error);
+      console.error('Error al validar usuario:', error);
       return null;
     }
   }
-  
+
   /**
-   * Método alternativo: Verifica los grupos de un usuario y confirma si es profesor
-   * @param userEmail Email institucional del usuario
-   * @returns Datos del usuario con indicador si es profesor
+   * Verifica si el servidor backend está funcionando
+   * @returns true si el servidor está activo, false en caso contrario
    */
-  async checkTeacherByMemberships(userEmail: string): Promise<AuthUser | null> {
+  async checkServerHealth(): Promise<boolean> {
     try {
-      // Obtener información del usuario por su email
-      const userResponse = await this.graphClient
-        .api(`/users`)
-        .filter(`mail eq '${userEmail}'`)
-        .get();
-      
-      if (!userResponse.value || userResponse.value.length === 0) {
-        return null;
-      }
-      
-      const user = userResponse.value[0];
-      
-      // Obtener todos los grupos del usuario
-      const groupsResponse = await this.graphClient
-        .api(`/users/${user.id}/memberOf`)
-        .get();
-      
-      // Buscar si alguno de los grupos es "Docentes Ameritec"
-      const isTeacher = groupsResponse.value.some(
-        (group: any) => group.displayName === "Docentes Ameritec"
-      );
-      
-      return {
-        id: user.id,
-        displayName: user.displayName,
-        email: userEmail,
-        isTeacher: isTeacher
-      };
-      
+      const response = await axios.get(`${this.apiUrl}/health`);
+      return response.data.status === 'OK';
     } catch (error) {
-      console.error('Error al verificar grupos del usuario:', error);
-      return null;
+      console.error('Error al verificar el estado del servidor:', error);
+      return false;
     }
   }
 }

@@ -3,27 +3,26 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { MdMarkEmailUnread } from "react-icons/md";
-import { TbPasswordFingerprint } from "react-icons/tb";
+import { AuthService } from "../../services/authService";
 
 const formSchema = z.object({
   email: z.string().min(2, {
     message: "Email is correct.",
-  }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }),
+  })
 });
 const LoginFrom = () => {
+  const authService = new AuthService();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log("Form submitted with values:", values);
+    await authService.validateTeacher(values.email);
+    console.log("User validated successfully", authService);
   }
   return (
     <>
@@ -43,20 +42,10 @@ const LoginFrom = () => {
               label="Correo Electrónico"
               type="email"
               registration={form.register("email")}
-              error={form.formState.errors.password}
+              error={form.formState.errors.email}
               required
               className="mt-4"
               icon={<MdMarkEmailUnread className="h-5 w-5 text-gray-500" />}
-            />
-            <FloatingInput
-              id="password"
-              label="Contraseña"
-              type="password"
-              registration={form.register("password")}
-              error={form.formState.errors.password}
-              required
-              className="mt-4"
-              icon={<TbPasswordFingerprint className="h-5 w-5 text-gray-500" />}
             />
             <button
               type="submit"
