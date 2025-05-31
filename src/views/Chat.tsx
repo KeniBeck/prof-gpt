@@ -142,7 +142,7 @@ const Chat = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-amber-50/50 to-red-50/20 relative">
+        <div className="flex h-[100dvh] sm:h-screen bg-gradient-to-br from-amber-50/50 to-red-50/20 relative">
             {/* Overlay para móvil cuando sidebar está abierto */}
             {sidebarOpen && (
                 <div
@@ -155,8 +155,8 @@ const Chat = () => {
             <div
                 className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:-translate-x-full"
                     } fixed lg:fixed top-0 left-0 z-30 w-80 sm:w-72 md:w-80 
-                      lg:w-80 xl:w-96 h-full transition-transform duration-300 ease-in-out
-                      bg-amber-50 border-r border-gray-200 flex flex-col`}
+        lg:w-80 xl:w-96 h-[100dvh] sm:h-full transition-transform duration-300 ease-in-out
+        bg-amber-50 border-r border-gray-200 flex flex-col`}
             >
                 <div className="p-3 sm:p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-4">
@@ -216,9 +216,9 @@ const Chat = () => {
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-[100dvh] sm:h-full">
                 {/* Header */}
-                <div className="bg-amber-50/70 border-b border-gray-200 p-3 sm:p-4 shadow-sm">
+                <div className="bg-amber-50/70 border-b border-gray-200 p-3 sm:p-4 shadow-sm flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                             <Button
@@ -242,7 +242,7 @@ const Chat = () => {
                 </div>
 
                 {/* Messages */}
-                <ScrollArea className="flex-1 p-2 sm:p-4">
+                <ScrollArea className="flex-1 p-2 sm:p-4 min-h-0">
                     <div className="max-w-full lg:max-w-4xl mx-auto space-y-4 sm:space-y-6">
                         {messages.length === 1 && (
                             <div className="text-center py-4 sm:py-8">
@@ -260,7 +260,7 @@ const Chat = () => {
                                             key={index}
                                             variant="outline"
                                             className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2 
-                               hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm"
+                             hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm"
                                             onClick={() => handleSendMessage(action.prompt)}
                                         >
                                             <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
@@ -324,7 +324,7 @@ const Chat = () => {
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="bg-amber-50/70 border-t border-gray-200 p-3 sm:p-4">
+                <div className="bg-amber-50/70 border-t border-gray-200 p-3 sm:p-4 flex-shrink-0">
                     <div className="max-w-full lg:max-w-4xl mx-auto">
                         <div className="flex space-x-2 sm:space-x-3">
                             <div className="flex-1 relative">
@@ -334,7 +334,7 @@ const Chat = () => {
                                     onKeyPress={handleKeyPress}
                                     placeholder="Escribe tu pregunta..."
                                     className="pr-10 sm:pr-12 py-2 sm:py-3 text-sm sm:text-base 
-                           border-gray-300 focus:border-red-500 focus:ring-red-500 bg-amber-50/70"
+                         border-gray-300 focus:border-red-500 focus:ring-red-500 bg-amber-50/70"
                                     disabled={isLoading}
                                 />
                                 <Button
@@ -342,7 +342,7 @@ const Chat = () => {
                                     disabled={!inputValue.trim() || isLoading}
                                     size="sm"
                                     className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 
-                           bg-red-600 hover:bg-red-700 p-1 sm:p-2"
+                         bg-red-600 hover:bg-red-700 p-1 sm:p-2"
                                 >
                                     <IoSend className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>
