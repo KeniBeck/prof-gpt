@@ -117,14 +117,30 @@ const Chat = () => {
                 messageContent
             );
 
-            if (response.success && response.data) {
-                const assistantMessage: Message = {
-                    id: (Date.now() + 1).toString(),
-                    content: response.data.toString(), // Ajustar según la estructura de respuesta
-                    role: "assistant",
-                    timestamp: new Date(),
-                };
-                setMessages((prev) => [...prev, assistantMessage]);
+            if (response.success) {
+                // Si es un archivo para descargar
+                if (response.fileBlob && response.fileName) {
+                    // Descargar el archivo
+                    chatService.downloadFile(response.fileBlob, response.fileName);
+
+                    // Mostrar mensaje de confirmación
+                    const assistantMessage: Message = {
+                        id: (Date.now() + 1).toString(),
+                        content: `✅ He generado tu planificación de clase. El archivo Excel "${response.fileName}" se ha descargado automáticamente. Si no se descargó, verifica la configuración de descargas de tu navegador.`,
+                        role: "assistant",
+                        timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                } else {
+                    // Respuesta de texto normal
+                    const assistantMessage: Message = {
+                        id: (Date.now() + 1).toString(),
+                        content: response.data?.toString() || response.message || 'Respuesta recibida',
+                        role: "assistant",
+                        timestamp: new Date(),
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                }
             } else {
                 // Manejar error
                 const errorMessage: Message = {
