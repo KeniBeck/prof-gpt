@@ -17,3 +17,15 @@ export interface QuickAction {
   label: string;
   prompt: string;
 }
+
+export interface ChatServiceRequest {
+  usuario: string;
+  pregunta: string;
+}
+
+export interface ChatServiceResponse {
+  success: boolean;
+  data?: any;
+  message?: string;
+  error?: string;
+}

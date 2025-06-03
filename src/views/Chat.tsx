@@ -19,6 +19,7 @@ import type { Message, Conversation, QuickAction } from "../lib/interface/chat";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import MentoraSVG from "../assets/mentora.svg";
+import chatService from "../services/chatService";
 
 const Chat = () => {
     const { user, logout } = useAuth();
@@ -96,7 +97,7 @@ const Chat = () => {
 
     const handleSendMessage = async (content?: string) => {
         const messageContent = content || inputValue.trim();
-        if (!messageContent) return;
+        if (!messageContent || !user?.email) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -109,17 +110,43 @@ const Chat = () => {
         setInputValue("");
         setIsLoading(true);
 
-        // Simular respuesta del asistente
-        setTimeout(() => {
-            const assistantMessage: Message = {
+        try {
+            // Usar el servicio de chat real
+            const response = await chatService.sendAuthenticatedMessage(
+                user.email,
+                messageContent
+            );
+
+            if (response.success && response.data) {
+                const assistantMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    content: response.data.toString(), // Ajustar según la estructura de respuesta
+                    role: "assistant",
+                    timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, assistantMessage]);
+            } else {
+                // Manejar error
+                const errorMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    content: `Lo siento, ocurrió un error: ${response.error || 'Error desconocido'}`,
+                    role: "assistant",
+                    timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, errorMessage]);
+            }
+        } catch (error) {
+            console.error('Error al enviar mensaje:', error);
+            const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
-                content: `Entiendo que necesitas ayuda con "${messageContent}". Como tu mentor educativo, puedo ayudarte a desarrollar esto paso a paso. ¿Podrías darme más detalles sobre el nivel educativo, la materia específica y los objetivos de aprendizaje que quieres alcanzar?`,
+                content: 'Lo siento, no pude procesar tu mensaje. Inténtalo de nuevo.',
                 role: "assistant",
                 timestamp: new Date(),
             };
-            setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => [...prev, errorMessage]);
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
