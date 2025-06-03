@@ -3,6 +3,8 @@ export interface Message {
   content: string;
   role: "user" | "assistant";
   timestamp: Date;
+  fileBlob?: Blob;
+  fileName?: string;
 }
 
 export interface Conversation {

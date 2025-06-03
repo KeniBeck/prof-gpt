@@ -13,10 +13,11 @@ export interface ChatResponse {
   error?: string;
   fileBlob?: Blob;
   fileName?: string;
+  contentType?: string;
 }
 
 // Configuración base del servicio
-const CHAT_API_BASE_URL = 'https://2lqqjvlg14.execute-api.us-east-2.amazonaws.com';
+const CHAT_API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Crear instancia de axios con configuración base
 const chatApiClient = axios.create({
@@ -30,11 +31,11 @@ const chatApiClient = axios.create({
 // Interceptor para logging de requests
 chatApiClient.interceptors.request.use(
   (config) => {
-    console.log('Enviando mensaje al chatbot:', config.data);
+    console.log('🚀 Enviando mensaje al chatbot:', config.data);
     return config;
   },
   (error) => {
-    console.error('Error en request:', error);
+    console.error('❌ Error en request:', error);
     return Promise.reject(error);
   }
 );
@@ -42,11 +43,11 @@ chatApiClient.interceptors.request.use(
 // Interceptor para manejo de responses
 chatApiClient.interceptors.response.use(
   (response) => {
-    console.log('Respuesta del chatbot recibida');
+    console.log('📡 Respuesta del chatbot recibida');
     return response;
   },
   (error) => {
-    console.error('Error en response:', error);
+    console.error('❌ Error en response:', error);
     return Promise.reject(error);
   }
 );
@@ -56,7 +57,7 @@ chatApiClient.interceptors.response.use(
  */
 class ChatService {
   /**
-   * Envía una pregunta al endpoint de planificación y maneja descargas de archivos
+   * Envía una pregunta al endpoint de consulta y maneja descargas de archivos
    * @param usuario - Email del usuario autenticado
    * @param pregunta - Pregunta o consulta del usuario
    * @returns Promise con la respuesta del chatbot o archivo
@@ -72,66 +73,61 @@ class ChatService {
         pregunta: pregunta.trim(),
       };
 
-      // Configurar la petición para manejar tanto JSON como archivos binarios
-      const response = await chatApiClient.post('/planificacion', payload, {
-        responseType: 'blob', // Importante: manejar como blob para archivos
-      });
+      console.log('📤 Enviando payload:', payload);
 
-      // Verificar el tipo de contenido de la respuesta
-      const contentType = response.headers['content-type'] || '';
-      
-      if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || 
-          contentType.includes('application/vnd.ms-excel')) {
-        
-        // Es un archivo Excel
-        const fileName = this.extractFileName(response.headers) || `planificacion_${Date.now()}.xlsx`;
-        
-        return {
-          success: true,
-          data: 'Archivo Excel generado exitosamente',
-          message: 'Descarga iniciada',
-          fileBlob: response.data,
-          fileName: fileName,
-        };
-      } else if (contentType.includes('application/json')) {
-        
-        // Es una respuesta JSON - convertir blob a texto
-        const text = await response.data.text();
-        const jsonData = JSON.parse(text);
-        
-        return {
-          success: true,
-          data: jsonData,
-          message: 'Respuesta recibida exitosamente',
-        };
+      // Hacer la petición al nuevo endpoint
+      const response = await chatApiClient.post('/chat/consult-frontend', payload);
+
+      console.log('📥 Respuesta recibida:', response.status);
+      console.log('📊 Datos de respuesta:', response.data);
+
+      // Verificar que la respuesta sea exitosa
+      if ((response.status === 200 || response.status === 201) && response.data.success) {
+        const responseData = response.data;
+
+        // Verificar si la respuesta contiene un archivo (usando 'filename' en lugar de 'fileName')
+        if (responseData.data && responseData.filename && responseData.contentType) {
+          // La respuesta contiene un archivo en base64
+          console.log('📁 Archivo detectado:', responseData.filename);
+          
+          // Convertir base64 a blob
+          const fileBlob = this.base64ToBlob(responseData.data, responseData.contentType);
+          
+          return {
+            success: true,
+            data: 'Archivo generado exitosamente',
+            message: 'Descarga lista',
+            fileBlob: fileBlob,
+            fileName: responseData.filename, // Mapear 'filename' a 'fileName'
+            contentType: responseData.contentType,
+          };
+        } else {
+          // Es una respuesta de texto normal
+          return {
+            success: true,
+            data: responseData.data,
+            message: 'Respuesta recibida exitosamente',
+          };
+        }
       } else {
-        
-        // Otro tipo de respuesta - tratarla como texto
-        const text = await response.data.text();
-        
         return {
-          success: true,
-          data: text,
-          message: 'Respuesta recibida exitosamente',
+          success: false,
+          error: 'Respuesta inesperada del servidor',
         };
       }
 
     } catch (error) {
-      console.error('Error al enviar mensaje:', error);
+      console.error('❌ Error al enviar mensaje:', error);
 
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
-        let message = error.message;
+        const errorData = error.response?.data;
         
-        // Intentar extraer mensaje de error si es JSON
-        if (error.response?.data) {
-          try {
-            const errorText = await error.response.data.text();
-            const errorData = JSON.parse(errorText);
-            message = errorData.message || message;
-          } catch {
-            // Si no es JSON, usar el mensaje original
-          }
+        let message = error.message;
+        if (errorData?.message) {
+          message = errorData.message;
+        } else if (errorData?.error) {
+          message = errorData.error;
         }
 
         return {
@@ -148,19 +144,30 @@ class ChatService {
   }
 
   /**
-   * Extrae el nombre del archivo de los headers de respuesta
-   * @param headers - Headers de la respuesta HTTP
-   * @returns Nombre del archivo o null
+   * Convierte una cadena base64 a Blob
+   * @param base64 - Cadena en base64
+   * @param contentType - Tipo de contenido del archivo
+   * @returns Blob del archivo
    */
-  private extractFileName(headers: any): string | null {
-    const contentDisposition = headers['content-disposition'];
-    if (contentDisposition) {
-      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
-      if (matches != null && matches[1]) {
-        return matches[1].replace(/['"]/g, '');
+  private base64ToBlob(base64: string, contentType: string): Blob {
+    try {
+      // Eliminar el prefijo data:... si existe
+      const base64Data = base64.replace(/^data:[^;]+;base64,/, '');
+      
+      // Decodificar base64
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: contentType });
+    } catch (error) {
+      console.error('❌ Error al convertir base64 a blob:', error);
+      throw new Error('Error al procesar el archivo');
     }
-    return null;
   }
 
   /**
@@ -196,14 +203,27 @@ class ChatService {
    * @param fileName - Nombre del archivo
    */
   downloadFile(blob: Blob, fileName: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    try {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpiar la URL después de un tiempo para liberar memoria
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log('✅ Descarga iniciada:', fileName);
+    } catch (error) {
+      console.error('❌ Error al descargar archivo:', error);
+      throw new Error('Error al descargar el archivo');
+    }
   }
 
   /**
@@ -212,11 +232,11 @@ class ChatService {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // Intentar hacer una petición simple al endpoint
-      await chatApiClient.get('/health', { timeout: 5000 });
-      return true;
+      // Verificar el endpoint de salud del backend
+      const response = await chatApiClient.get('/health', { timeout: 5000 });
+      return response.status === 200;
     } catch (error) {
-      console.warn('Servicio de chat no disponible:', error);
+      console.warn('⚠️ Servicio de chat no disponible:', error);
       return false;
     }
   }
