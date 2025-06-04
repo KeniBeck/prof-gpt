@@ -1,0 +1,18 @@
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  
+  .keyboard-aware {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    bottom: env(keyboard-inset-height, 0px);
+  }
+}
+
+/* Detectar cuando aparece el teclado en iOS */
+@media screen and (max-height: 500px) {
+  .ios-keyboard-open .chat-input {
+    bottom: 0;
+    position: absolute;
+  }
+}

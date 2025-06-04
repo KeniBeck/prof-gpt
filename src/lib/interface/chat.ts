@@ -3,6 +3,8 @@ export interface Message {
   content: string;
   role: "user" | "assistant";
   timestamp: Date;
+  fileBlob?: Blob;
+  fileName?: string;
 }
 
 export interface Conversation {
@@ -16,4 +18,16 @@ export interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   prompt: string;
+}
+
+export interface ChatServiceRequest {
+  usuario: string;
+  pregunta: string;
+}
+
+export interface ChatServiceResponse {
+  success: boolean;
+  data?: any;
+  message?: string;
+  error?: string;
 }
