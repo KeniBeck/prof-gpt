@@ -7,6 +7,7 @@ import { AuthService } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import ButtonLoader from "./ButtonLoader";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -93,10 +94,7 @@ const LoginFrom = () => {
                        py-3 sm:py-2 px-4 rounded-lg transition-colors text-sm sm:text-base"
           >
             {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                Verificando...
-              </div>
+              <ButtonLoader text="Verificando..." size="md" color="white" />
             ) : (
               "Iniciar Sesión"
             )}

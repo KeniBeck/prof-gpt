@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Loader from '../components/ui/Loader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,13 +14,13 @@ const ProtectedRoute = ({ children, requireTeacher = true }: ProtectedRouteProps
   // Mostrar loading mientras se verifica la autenticación con el servidor
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
-          <p className="mt-2 text-sm text-gray-500">Validando con el servidor</p>
-        </div>
-      </div>
+      <Loader 
+        message="Verificando autenticación..." 
+        subMessage="Validando con el servidor" 
+        size="md" 
+        fullScreen={true}
+        showLogo={true}
+      />
     );
   }
 

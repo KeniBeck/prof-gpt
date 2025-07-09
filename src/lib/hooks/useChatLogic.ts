@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Message } from "../interface/chat";
-import chatService from "../../services/chatService"; 
+import chatService, { ChatRequestType } from "../../services/chatService"; 
 
 export const useChatLogic = (userEmail?: string) => {
   const [messages, setMessages] = useState<Message[]>([
@@ -13,9 +13,15 @@ export const useChatLogic = (userEmail?: string) => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeRequestType, setActiveRequestType] = useState<string>(ChatRequestType.DEFAULT);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, requestType?: string) => {
     if (!content.trim() || !userEmail) return;
+
+    // Si se proporciona un tipo de consulta, lo establecemos como activo
+    if (requestType) {
+      setActiveRequestType(requestType);
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -28,9 +34,11 @@ export const useChatLogic = (userEmail?: string) => {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendAuthenticatedMessage(
+      // Usamos el nuevo método sendRequestByType con el tipo activo
+      const response = await chatService.sendRequestByType(
         userEmail,
-        content
+        content,
+        (requestType || activeRequestType) as ChatRequestType
       );
 
       if (response.success) {
@@ -91,5 +99,7 @@ export const useChatLogic = (userEmail?: string) => {
     messages,
     isLoading,
     sendMessage,
+    activeRequestType,
+    setActiveRequestType
   };
 };
