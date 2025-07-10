@@ -8,15 +8,18 @@ import {
 } from "react-icons/io5";
 import type { QuickAction } from "../../lib/interface/chat";
 import { ChatRequestType } from "../../services/chatService";
+import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
 
 interface QuickActionsProps {
   userName?: string;
   onActionClick: (type: string, placeholder?: string) => void;
+  onShowInstructions?: (type: string, instructions: string) => void;
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({
   userName,
   onActionClick,
+  onShowInstructions,
 }) => {
   const quickActions: QuickAction[] = [
     {
@@ -62,7 +65,18 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             variant="outline"
             className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2 
                      hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm"
-            onClick={() => onActionClick(action.type || '', action.prompt)}
+            onClick={() => {
+              // Seleccionar el tipo de acción
+              onActionClick(action.type || '', '');
+              
+              // Si existe la función para mostrar instrucciones, llamarla
+              if (onShowInstructions && action.type) {
+                const actionType = action.type as keyof typeof quickActionInstructions;
+                const instructions = quickActionInstructions[actionType] || 
+                  'Escribe tu consulta específica para esta acción.';
+                onShowInstructions(action.type, instructions);
+              }
+            }}
           >
             <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
             <span className="font-medium text-center leading-tight">

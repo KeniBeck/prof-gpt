@@ -49,7 +49,7 @@ export const useChatLogic = (userEmail?: string) => {
           // Mostrar mensaje de confirmación con datos del archivo
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: `✅ He generado el archivo "${response.fileName}". La descarga se ha iniciado automáticamente. Si no se descargó, haz clic en el enlace de abajo para descargar manualmente.`,
+            content: `✅ He generado el archivo solicitado. Puedes descargarlo usando el botón de abajo.`,
             role: "assistant",
             timestamp: new Date(),
             fileBlob: response.fileBlob,
@@ -97,6 +97,7 @@ export const useChatLogic = (userEmail?: string) => {
 
   return {
     messages,
+    setMessages,
     isLoading,
     sendMessage,
     activeRequestType,

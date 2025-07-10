@@ -67,7 +67,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // VALIDAR CON EL SERVIDOR
       console.log('🔍 Validando usuario con servidor:', userData.email);
-      const response = await authService.validateTeacher(userData.email);
+      const response = await authService.validateTeacherByEmail(userData.email);
+      console.log('🔍 Respuesta del servidor:', response);
 
       if (response.success && response.user) {
         // El usuario es válido según el servidor

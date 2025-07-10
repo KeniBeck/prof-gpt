@@ -17,6 +17,24 @@ export const Avatar = ({ children, className = '', style }: AvatarProps) => {
   );
 };
 
+interface AvatarImageProps {
+  src: string;
+  alt?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+export const AvatarImage = ({ src, alt = '', className = '', style }: AvatarImageProps) => {
+  return (
+    <img 
+      src={src}
+      alt={alt}
+      className={`aspect-square h-full w-full object-cover ${className}`}
+      style={style}
+    />
+  );
+};
+
 interface AvatarFallbackProps {
   children: ReactNode;
   className?: string;

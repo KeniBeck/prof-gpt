@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { IoSend, IoChevronUpOutline, IoChevronDownOutline } from "react-icons/io5";
 import { ChatRequestType } from "../../services/chatService";
 import TypeSelector from "./TypeSelector";
+import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
 
 interface ChatInputProps {
   value: string;
@@ -13,6 +14,8 @@ interface ChatInputProps {
   disabled: boolean;
   activeRequestType?: string;
   onTypeSelect?: (type: string) => void;
+  onShowInstructions?: (type: string, instructions: string) => void;
+  onTypeSelectorToggle?: (isVisible: boolean) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -23,22 +26,43 @@ const ChatInput: React.FC<ChatInputProps> = ({
   disabled,
   activeRequestType = ChatRequestType.DEFAULT,
   onTypeSelect,
+  onShowInstructions,
+  onTypeSelectorToggle,
 }) => {
   const isQuickActionSelected = activeRequestType !== ChatRequestType.DEFAULT;
   const inputDisabled = disabled || !isQuickActionSelected;
   const [showTypeSelector, setShowTypeSelector] = useState(false);
 
+  // Efecto para notificar cuando cambia la visibilidad del selector
+  useEffect(() => {
+    if (onTypeSelectorToggle) {
+      onTypeSelectorToggle(showTypeSelector);
+    }
+  }, [showTypeSelector, onTypeSelectorToggle]);
+
   return (
-    <div className="bg-amber-50/70 border-t border-gray-200 p-2 sm:p-3 shadow-lg">
-      <div className="max-w-full lg:max-w-4xl mx-auto">
+    <div className="bg-amber-50/70 border-t border-gray-200 p-3 sm:p-4 shadow-lg">
+      <div className="max-w-full lg:max-w-4xl mx-auto pt-1">
         {/* Botón para mostrar/ocultar selector de tipo */}
         {onTypeSelect && (
-          <div className="flex justify-between items-center mb-1">
+          <div className={`flex justify-between items-center ${showTypeSelector ? 'mb-2' : 'mb-1'}`}>
             <div className="flex-1">
               {showTypeSelector && (
                 <TypeSelector
                   activeType={activeRequestType}
-                  onTypeSelect={onTypeSelect}
+                  onTypeSelect={(type) => {
+                    if (onTypeSelect) {
+                      onTypeSelect(type);
+                      
+                      // Si hay una función para mostrar instrucciones, la llamamos
+                      if (onShowInstructions) {
+                        const actionType = type as keyof typeof quickActionInstructions;
+                        const instructions = quickActionInstructions[actionType] || 
+                          'Escribe tu consulta específica para esta acción.';
+                        onShowInstructions(type, instructions);
+                      }
+                    }
+                  }}
                   compact={true}
                 />
               )}

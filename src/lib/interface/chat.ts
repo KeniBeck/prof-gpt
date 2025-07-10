@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date;
   fileBlob?: Blob;
   fileName?: string;
+  requestType?: string;
 }
 
 export interface Conversation {
