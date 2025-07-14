@@ -75,7 +75,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             message.role === "user"
               ? "bg-red-600 text-white"
               : isInstructionMessage 
-                ? "bg-gradient-to-br from-amber-50 to-red-50 border border-amber-200 shadow-md" 
+                ? "bg-gradient-to-br from-amber-50 via-red-50 to-amber-100 border border-amber-200 shadow-lg" 
                 : "bg-amber-50 border border-gray-200"
           }`}
           style={{ marginTop: message.role === "user" ? "0" : "2px" }}
@@ -83,14 +83,49 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           {/* Si es un mensaje de instrucciones, mostramos un diseño especial */}
           {isInstructionMessage ? (
             <div>
-              <div className="flex items-center mb-3">
-                {getRequestTypeIcon()}
-                <span className="ml-2 font-semibold text-red-700 text-base sm:text-lg">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-red-100 rounded-full shadow-sm">
+                  {getRequestTypeIcon()}
+                </div>
+                <span className="ml-3 font-semibold text-red-700 text-base sm:text-lg">
                   {message.content.split('\n')[0].replace(/\*\*/g, '')}
                 </span>
               </div>
-              <div className="text-xs sm:text-sm md:text-base text-gray-700 whitespace-pre-wrap leading-relaxed pl-1">
-                {message.content.split('\n').slice(2).join('\n')}
+              <div className="text-xs sm:text-sm md:text-base text-gray-700 whitespace-pre-wrap leading-relaxed px-2 py-1">
+                {/* Vamos a procesar las viñetas y ejemplos para destacarlos */}
+                {message.content.split('\n').slice(2).map((line, index) => {
+                  if (line.trim().startsWith('-')) {
+                    // Destacamos las viñetas
+                    return (
+                      <div key={index} className="flex items-start mb-2">
+                        <span className="text-red-500 mr-2 font-bold">•</span>
+                        <span>{line.trim().substring(1).trim()}</span>
+                      </div>
+                    );
+                  } else if (line.trim().startsWith('Ejemplo:') || line.includes('Ejemplo:')) {
+                    // Destacamos los ejemplos
+                    return (
+                      <div key={index} className="bg-amber-100 p-3 rounded-md my-3 border-l-4 border-amber-400 shadow-sm">
+                        <span className="font-medium text-amber-800">Ejemplo:</span>
+                        <div className="mt-1 text-gray-800 font-light italic">
+                          {line.replace('Ejemplo:', '').trim()}
+                        </div>
+                      </div>
+                    );
+                  } else if (line.trim().startsWith('"') && line.trim().endsWith('"')) {
+                    // Esto es para manejar los ejemplos adicionales en formato de cita
+                    return (
+                      <div key={index} className="bg-amber-100 p-2 rounded-md my-2 border-l-4 border-amber-400 shadow-sm">
+                        <div className="text-gray-800 font-light italic">
+                          {line.trim()}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    // Texto normal
+                    return <div key={index} className="mb-2">{line}</div>;
+                  }
+                })}
               </div>
             </div>
           ) : (

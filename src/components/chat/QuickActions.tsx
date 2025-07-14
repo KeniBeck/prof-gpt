@@ -31,19 +31,19 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     {
       icon: IoDocumentTextOutline,
       label: "Integrador",
-      prompt: "Genera la clase 1 de semana 2 unidad 3 para Comunicación y Lenguaje de 6th para PIT.",
+      prompt: "Genera la planificación de la clase 1 de semana 2 unidad 3 para Comunicación y Lenguaje de 6th para PIT.",
       type: ChatRequestType.INTEGRADOR,
     },
     {
       icon: IoPeopleOutline,
       label: "Adecuación",
-      prompt: "Genera una adecuación pedagógica para Sofía Gómez de 3rd en lectura, con necesidad de instrucciones simplificadas y apoyo visual.",
+      prompt: "Genera una adecuación pedagógica para sofia.gomez@ameritec.edu.gt, con necesidad de apoyo visual y seguimiento personalizado. Dx: TDAH.",
       type: ChatRequestType.ADECUACION,
     },
     {
       icon: IoAnalyticsOutline,
       label: "Seguimiento",
-      prompt: "¿Qué contenidos declarativos se han cubierto en matemática de 12th?",
+      prompt: "¿Cuál es el avance de planificación en Matemática de 12th?",
       type: ChatRequestType.SEGUIMIENTO,
     },
   ];
@@ -64,7 +64,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             key={index}
             variant="outline"
             className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2 
-                     hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm"
+                     hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm
+                     transition-all duration-200 hover:shadow-md hover:scale-105"
             onClick={() => {
               // Seleccionar el tipo de acción
               onActionClick(action.type || '', '');
@@ -78,7 +79,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({
               }
             }}
           >
-            <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            <div className="rounded-full bg-red-100 p-2 mb-1">
+              <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            </div>
             <span className="font-medium text-center leading-tight">
               {action.label}
             </span>
