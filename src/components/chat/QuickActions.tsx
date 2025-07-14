@@ -4,39 +4,47 @@ import {
   IoBookOutline,
   IoPeopleOutline,
   IoDocumentTextOutline,
-  IoBulbOutline,
+  IoAnalyticsOutline,
 } from "react-icons/io5";
 import type { QuickAction } from "../../lib/interface/chat";
+import { ChatRequestType } from "../../services/chatService";
+import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
 
 interface QuickActionsProps {
   userName?: string;
-  onActionClick: (prompt: string) => void;
+  onActionClick: (type: string, placeholder?: string) => void;
+  onShowInstructions?: (type: string, instructions: string) => void;
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({
   userName,
   onActionClick,
+  onShowInstructions,
 }) => {
   const quickActions: QuickAction[] = [
     {
       icon: IoBookOutline,
-      label: "Plan de Clase",
-      prompt: "Ayúdame a crear un plan de clase para...",
+      label: "Planificador",
+      prompt: "Genera la planificación de la clase 1 de semana 2 unidad 4 para física fundamental de 12th",
+      type: ChatRequestType.PLANIFICADOR,
     },
     {
       icon: IoDocumentTextOutline,
-      label: "Evaluación",
-      prompt: "Necesito crear una evaluación sobre...",
+      label: "Integrador",
+      prompt: "Genera la planificación de la clase 1 de semana 2 unidad 3 para Comunicación y Lenguaje de 6th para PIT.",
+      type: ChatRequestType.INTEGRADOR,
     },
     {
       icon: IoPeopleOutline,
-      label: "Actividad Grupal",
-      prompt: "Diseña una actividad grupal para...",
+      label: "Adecuación",
+      prompt: "Genera una adecuación pedagógica para sofia.gomez@ameritec.edu.gt, con necesidad de apoyo visual y seguimiento personalizado. Dx: TDAH.",
+      type: ChatRequestType.ADECUACION,
     },
     {
-      icon: IoBulbOutline,
-      label: "Idea Creativa",
-      prompt: "Dame ideas creativas para enseñar...",
+      icon: IoAnalyticsOutline,
+      label: "Seguimiento",
+      prompt: "¿Cuál es el avance de planificación en Matemática de 12th?",
+      type: ChatRequestType.SEGUIMIENTO,
     },
   ];
 
@@ -44,10 +52,10 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     <div className="text-center py-4 sm:py-8">
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2">
-          ¡Bienvenido{userName ? `, ${userName.split(" ")[0]}` : ""}!
+          ¡Bienvenid{userName ? `@, ${userName.split(" ")[0]}` : "@"}!
         </h2>
         <p className="text-sm sm:text-base text-gray-600 px-4">
-          Comienza una conversación seleccionando una opción
+          Selecciona una opción para comenzar
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 px-2 sm:px-0">
@@ -56,10 +64,24 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             key={index}
             variant="outline"
             className="h-auto p-3 sm:p-4 flex flex-col items-center space-y-1 sm:space-y-2 
-                     hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm"
-            onClick={() => onActionClick(action.prompt)}
+                     hover:bg-red-50 hover:border-red-200 bg-amber-50/70 text-xs sm:text-sm
+                     transition-all duration-200 hover:shadow-md hover:scale-105"
+            onClick={() => {
+              // Seleccionar el tipo de acción
+              onActionClick(action.type || '', '');
+              
+              // Si existe la función para mostrar instrucciones, llamarla
+              if (onShowInstructions && action.type) {
+                const actionType = action.type as keyof typeof quickActionInstructions;
+                const instructions = quickActionInstructions[actionType] || 
+                  'Escribe tu consulta específica para esta acción.';
+                onShowInstructions(action.type, instructions);
+              }
+            }}
           >
-            <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            <div className="rounded-full bg-red-100 p-2 mb-1">
+              <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            </div>
             <span className="font-medium text-center leading-tight">
               {action.label}
             </span>

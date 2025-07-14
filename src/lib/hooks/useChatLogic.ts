@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Message } from "../interface/chat";
-import chatService from "../../services/chatService"; 
+import chatService, { ChatRequestType } from "../../services/chatService"; 
 
 export const useChatLogic = (userEmail?: string) => {
   const [messages, setMessages] = useState<Message[]>([
@@ -13,9 +13,15 @@ export const useChatLogic = (userEmail?: string) => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeRequestType, setActiveRequestType] = useState<string>(ChatRequestType.DEFAULT);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, requestType?: string) => {
     if (!content.trim() || !userEmail) return;
+
+    // Si se proporciona un tipo de consulta, lo establecemos como activo
+    if (requestType) {
+      setActiveRequestType(requestType);
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -28,9 +34,11 @@ export const useChatLogic = (userEmail?: string) => {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendAuthenticatedMessage(
+      // Usamos el nuevo método sendRequestByType con el tipo activo
+      const response = await chatService.sendRequestByType(
         userEmail,
-        content
+        content,
+        (requestType || activeRequestType) as ChatRequestType
       );
 
       if (response.success) {
@@ -41,7 +49,7 @@ export const useChatLogic = (userEmail?: string) => {
           // Mostrar mensaje de confirmación con datos del archivo
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: `✅ He generado el archivo "${response.fileName}". La descarga se ha iniciado automáticamente. Si no se descargó, haz clic en el enlace de abajo para descargar manualmente.`,
+            content: `✅ He generado el archivo solicitado. Puedes descargarlo usando el botón de abajo.`,
             role: "assistant",
             timestamp: new Date(),
             fileBlob: response.fileBlob,
@@ -89,7 +97,10 @@ export const useChatLogic = (userEmail?: string) => {
 
   return {
     messages,
+    setMessages,
     isLoading,
     sendMessage,
+    activeRequestType,
+    setActiveRequestType
   };
 };

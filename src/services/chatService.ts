@@ -1,5 +1,16 @@
 import axios from 'axios';
 
+// Enumeración para tipos de consulta
+export const ChatRequestType = {
+  DEFAULT: 'default',
+  PLANIFICADOR: 'planificador',
+  INTEGRADOR: 'integrador',
+  ADECUACION: 'adecuacion',
+  SEGUIMIENTO: 'seguimiento',
+} as const;
+
+export type ChatRequestType = typeof ChatRequestType[keyof typeof ChatRequestType];
+
 // Interfaces para el servicio de chat
 export interface ChatRequest {
   usuario: string;
@@ -57,12 +68,17 @@ chatApiClient.interceptors.response.use(
  */
 class ChatService {
   /**
-   * Envía una pregunta al endpoint de consulta y maneja descargas de archivos
+   * Método base para enviar mensajes a cualquier endpoint del chatbot
    * @param usuario - Email del usuario autenticado
    * @param pregunta - Pregunta o consulta del usuario
+   * @param endpoint - Endpoint específico al que se enviará la petición
    * @returns Promise con la respuesta del chatbot o archivo
    */
-  async sendMessage(usuario: string, pregunta: string): Promise<ChatResponse> {
+  private async sendMessageToEndpoint(
+    usuario: string, 
+    pregunta: string, 
+    endpoint: string
+  ): Promise<ChatResponse> {
     try {
       if (!usuario || !pregunta) {
         throw new Error('Usuario y pregunta son requeridos');
@@ -73,10 +89,10 @@ class ChatService {
         pregunta: pregunta.trim(),
       };
 
-      console.log('📤 Enviando payload:', payload);
+      console.log(`📤 Enviando payload a ${endpoint}:`, payload);
 
-      // Hacer la petición al nuevo endpoint
-      const response = await chatApiClient.post('/chat/consult-frontend', payload);
+      // Hacer la petición al endpoint específico
+      const response = await chatApiClient.post(endpoint, payload);
 
       console.log('📥 Respuesta recibida:', response.status);
       console.log('📊 Datos de respuesta:', response.data);
@@ -144,6 +160,101 @@ class ChatService {
   }
 
   /**
+   * Envía una pregunta al endpoint genérico de consulta (legacy)
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Pregunta o consulta del usuario
+   * @returns Promise con la respuesta del chatbot o archivo
+   */
+  async sendMessage(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/consult-frontend');
+  }
+
+  /**
+   * Envía una consulta específica al módulo Planificador
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Consulta de planificación de clase (grado, área, unidad, semana, número de clase)
+   * @returns Promise con la respuesta del planificador (típicamente archivo Excel)
+   */
+  async sendPlanificadorRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/planificador-frontend');
+  }
+
+  /**
+   * Envía una consulta específica al módulo Integrador
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Consulta de planificación integrada (grado, área, unidad, semana, número de clase, proyecto)
+   * @returns Promise con la respuesta del integrador (típicamente archivo Excel)
+   */
+  async sendIntegradorRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/integrador-frontend');
+  }
+
+  /**
+   * Envía una consulta específica al módulo Adecuación
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Consulta de adecuación pedagógica (nombre estudiante, grado, área, detalle adecuación)
+   * @returns Promise con la respuesta de adecuación (típicamente archivo Excel)
+   */
+  async sendAdecuacionRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/adecuacion-frontend');
+  }
+
+  /**
+   * Envía una consulta específica al módulo Seguimiento
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Consulta de seguimiento (avance de planificaciones por docente o grado-área)
+   * @returns Promise con la respuesta de seguimiento
+   */
+  async sendSeguimientoRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/seguimiento-frontend');
+  }
+
+  /**
+   * Método unificado para enviar mensajes según el tipo de consulta
+   * @param usuario - Email del usuario autenticado
+   * @param pregunta - Pregunta o consulta del usuario
+   * @param tipo - Tipo de consulta (planificador, integrador, adecuación, seguimiento)
+   * @returns Promise con la respuesta según el tipo de consulta
+   */
+  async sendRequestByType(
+    usuario: string, 
+    pregunta: string, 
+    tipo: ChatRequestType = ChatRequestType.DEFAULT
+  ): Promise<ChatResponse> {
+    // Validar que la pregunta no esté vacía y tenga longitud mínima
+    if (!pregunta || pregunta.trim().length < 3) {
+      return {
+        success: false,
+        error: 'La consulta debe tener al menos 3 caracteres',
+      };
+    }
+
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(usuario)) {
+      return {
+        success: false,
+        error: 'Email de usuario no válido',
+      };
+    }
+
+    // Enviar la consulta al endpoint correspondiente según el tipo
+    switch (tipo) {
+      case ChatRequestType.PLANIFICADOR:
+        return this.sendPlanificadorRequest(usuario, pregunta);
+      case ChatRequestType.INTEGRADOR:
+        return this.sendIntegradorRequest(usuario, pregunta);
+      case ChatRequestType.ADECUACION:
+        return this.sendAdecuacionRequest(usuario, pregunta);
+      case ChatRequestType.SEGUIMIENTO:
+        return this.sendSeguimientoRequest(usuario, pregunta);
+      case ChatRequestType.DEFAULT:
+      default:
+        return this.sendMessage(usuario, pregunta);
+    }
+  }
+
+  /**
    * Convierte una cadena base64 a Blob
    * @param base64 - Cadena en base64
    * @param contentType - Tipo de contenido del archivo
@@ -175,6 +286,7 @@ class ChatService {
    * @param usuario - Email del usuario
    * @param pregunta - Pregunta del usuario
    * @returns Promise con la respuesta validada
+   * @deprecated Use sendRequestByType instead
    */
   async sendAuthenticatedMessage(usuario: string, pregunta: string): Promise<ChatResponse> {
     // Validar formato de email básico

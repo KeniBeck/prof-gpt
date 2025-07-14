@@ -15,6 +15,11 @@ export interface AuthResponse {
   statusCode?: number;
 }
 
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
 export class AuthService {
   private apiUrl: string;
 
@@ -23,15 +28,26 @@ export class AuthService {
   }
 
   /**
-   * Verifica si un usuario es profesor
-   * @param userEmail Email institucional del usuario
+   * Valida las credenciales de un usuario durante el inicio de sesión
+   * @param credentials Credenciales del usuario (email y password)
    * @returns Respuesta con los datos del usuario o error
    */
-  async validateTeacher(userEmail: string): Promise<AuthResponse> {
+  async validateTeacher(credentials: LoginCredentials | string): Promise<AuthResponse> {
     try {
-      const response = await axios.post(`${this.apiUrl}/microsoft-graph/validate-teacher`, {
-        email: userEmail
-      });
+      // Si recibimos solo el email (compatibilidad con versión anterior)
+      let requestBody: any;
+      if (typeof credentials === 'string') {
+        console.warn('⚠️ Usando método obsoleto de autenticación con solo email. Por favor actualiza a la nueva API.');
+        requestBody = { email: credentials };
+      } else {
+        // Nuevo método: email y password
+        requestBody = {
+          email: credentials.email,
+          password: credentials.password
+        };
+      }
+
+      const response = await axios.post(`${this.apiUrl}/microsoft-graph/validate-teacher`, requestBody);
       
       const statusCode = response.status;
       console.log('📡 Respuesta del servidor - Status:', statusCode);
@@ -48,7 +64,7 @@ export class AuthService {
       
       return {
         success: false,
-        message: 'Respuesta inesperada del servidor',
+        message: response.data.message || 'Respuesta inesperada del servidor',
         statusCode
       };
       
@@ -72,29 +88,107 @@ export class AuthService {
           case 401:
             return {
               success: false,
-              message: 'No autorizado',
-              error: 'NO_AUTORIZADO',
+              message: errorData?.message || 'Credenciales incorrectas',
+              error: 'CREDENCIALES_INCORRECTAS',
               statusCode: status
             };
           case 403:
             return {
               success: false,
-              message: 'Acceso denegado',
+              message: errorData?.message || 'Acceso denegado',
               error: 'ACCESO_DENEGADO',
               statusCode: status
             };
           case 404:
             return {
               success: false,
-              message: 'Endpoint no encontrado',
+              message: errorData?.message || 'Endpoint no encontrado',
               error: 'ENDPOINT_NO_ENCONTRADO',
               statusCode: status
             };
           case 500:
             return {
               success: false,
-              message: 'Error interno del servidor',
+              message: errorData?.message || 'Error interno del servidor',
               error: 'ERROR_SERVIDOR',
+              statusCode: status
+            };
+          default:
+            return {
+              success: false,
+              message: errorData?.message || `Error del servidor (${status})`,
+              error: 'ERROR_SERVIDOR',
+              statusCode: status
+            };
+        }
+      }
+      
+      return {
+        success: false,
+        message: 'Error de red o conexión',
+        error: 'ERROR_RED'
+      };
+    }
+  }
+
+  /**
+   * Valida si un usuario es profesor usando solo el email (usado después del login)
+   * @param email Email del usuario a validar
+   * @returns Respuesta con los datos del usuario o error
+   */
+  async validateTeacherByEmail(email: string): Promise<AuthResponse> {
+    try {
+      if (!email) {
+        return {
+          success: false,
+          message: 'Se requiere correo electrónico',
+          error: 'EMAIL_REQUERIDO'
+        };
+      }
+
+      const response = await axios.get(`${this.apiUrl}/microsoft-graph/validate-teacher/${email}`);
+      
+      const statusCode = response.status;
+      console.log('📡 Validación por email - Status:', statusCode);
+      
+      // Verificar códigos de éxito (200)
+      if (statusCode === 200 && response.data.success && response.data.user) {
+        console.log('✅ Validación por email exitosa');
+        return {
+          success: true,
+          user: response.data.user,
+          statusCode
+        };
+      }
+      
+      return {
+        success: false,
+        message: response.data.message || 'Respuesta inesperada del servidor',
+        statusCode
+      };
+      
+    } catch (error) {
+      console.error('❌ Error en validación por email:', error);
+      
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const errorData = error.response?.data;
+        
+        console.log('📡 Error de validación - Status:', status);
+        
+        switch (status) {
+          case 404:
+            return {
+              success: false,
+              message: errorData?.message || 'Usuario no encontrado',
+              error: 'USUARIO_NO_ENCONTRADO',
+              statusCode: status
+            };
+          case 401:
+            return {
+              success: false,
+              message: errorData?.message || 'No autorizado',
+              error: 'NO_AUTORIZADO',
               statusCode: status
             };
           default:

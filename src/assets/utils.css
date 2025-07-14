@@ -16,3 +16,61 @@
     position: absolute;
   }
 }
+
+/* Animaciones para el avatar */
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animación para el indicador de carga */
+@keyframes loadingBar {
+  0% {
+    width: 10%;
+    background-position: 0% 0%;
+  }
+  50% {
+    width: 70%;
+    background-position: 100% 0%;
+  }
+  100% {
+    width: 95%;
+    background-position: 0% 0%;
+  }
+}
+
+.avatar-pulse {
+  animation: pulseGlow 2s infinite;
+}
+
+.avatar-hover {
+  transition: all 0.3s ease;
+}
+
+.avatar-hover:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.loading-bar {
+  animation: loadingBar 2s ease-in-out infinite;
+  background-size: 200% 100%;
+}

@@ -3,16 +3,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { MdMarkEmailUnread } from "react-icons/md";
+import { RiLockPasswordLine } from "react-icons/ri";
 import { AuthService } from "../../services/authService";
+import type { LoginCredentials } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import ButtonLoader from "./ButtonLoader";
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Por favor ingresa un email válido.",
   }).min(1, {
     message: "El email es requerido.",
+  }),
+  password: z.string().min(1, {
+    message: "La contraseña es requerida."
   })
 });
 
@@ -27,6 +33,7 @@ const LoginFrom = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
+      password: ""
     },
   });
 
@@ -34,21 +41,26 @@ const LoginFrom = () => {
     setIsLoading(true);
     setErrorMessage("");
     
-    console.log("Form submitted with values:", values);
+    console.log("Form submitted with values:", { email: values.email, password: '***' });
     
     try {
-      const response = await authService.validateTeacher(values.email);
+      const credentials: LoginCredentials = {
+        email: values.email,
+        password: values.password
+      };
+      
+      const response = await authService.validateTeacher(credentials);
       
       if (response.success && response.user) {
-        console.log("User validated successfully", response.user);
+        console.log("Usuario autenticado correctamente", response.user);
         login(response.user);
         navigate("/home");
       } else {
         setErrorMessage(response.message || "Error al validar usuario");
-        console.error("Validation failed:", response);
+        console.error("Falló la autenticación:", response);
       }
     } catch (error) {
-      console.error("Unexpected error:", error);
+      console.error("Error inesperado:", error);
       setErrorMessage("Error inesperado. Por favor intenta de nuevo.");
     } finally {
       setIsLoading(false);
@@ -65,7 +77,7 @@ const LoginFrom = () => {
       <div className="space-y-4">
         <div className="text-xl sm:text-2xl font-bold text-gray-900">Iniciar Sesión</div>
         <div className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
-          Accede a tu asistente educativo personalizado
+          Login con tu correo oficial
         </div>
 
         {errorMessage && (
@@ -82,9 +94,21 @@ const LoginFrom = () => {
             registration={form.register("email")}
             error={form.formState.errors.email}
             required
-            className="mt-4"
+            className="mb-4"
             icon={<MdMarkEmailUnread className="h-5 w-5 text-gray-500" />}
           />
+          
+          <FloatingInput
+            id="password"
+            label="Contraseña"
+            type="password"
+            registration={form.register("password")}
+            error={form.formState.errors.password}
+            required
+            className="mb-4"
+            icon={<RiLockPasswordLine className="h-5 w-5 text-gray-500" />}
+          />
+          
           <button
             type="submit"
             disabled={isLoading}
@@ -93,10 +117,7 @@ const LoginFrom = () => {
                        py-3 sm:py-2 px-4 rounded-lg transition-colors text-sm sm:text-base"
           >
             {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                Verificando...
-              </div>
+              <ButtonLoader text="Verificando..." size="md" color="white" />
             ) : (
               "Iniciar Sesión"
             )}

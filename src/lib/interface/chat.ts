@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date;
   fileBlob?: Blob;
   fileName?: string;
+  requestType?: string;
 }
 
 export interface Conversation {
@@ -18,6 +19,7 @@ export interface QuickAction {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   prompt: string;
+  type?: string; // Tipo de consulta: planificador, integrador, adecuacion, seguimiento
 }
 
 export interface ChatServiceRequest {

@@ -46,7 +46,7 @@ export function FloatingInput({
       <div className="relative">
         {/* Icono a la izquierda */}
         {hasIcon && iconPosition === "left" && (
-          <div className="absolute left-3 top-[60%] -translate-y-1/2 text-gray-500 pointer-events-none">
+          <div className="absolute left-3 top-[40%] -translate-y-1/2 text-gray-500 pointer-events-none">
             {icon}
           </div>
         )}
@@ -74,7 +74,7 @@ export function FloatingInput({
                {isPasswordField && (
           <button
             type="button"
-            className="absolute right-3 top-[60%] -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none z-10"
+            className="absolute right-3 top-[40%] -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none z-10"
             onClick={togglePasswordVisibility}
             tabIndex={-1}
           >
@@ -87,8 +87,8 @@ export function FloatingInput({
           absolute text-sm duration-300 transform 
           ${
             isFocused || hasValue
-              ? `-translate-y-5 top-6 left-2 bg-amber-50 scale-75 z-10 px-1 ${required ? 'text-amber-800':'text-amber-700'}`
-              : "top-7 left-12 text-gray-500"
+              ? `-translate-y-5 top-3 left-2 bg-amber-50 scale-75 z-10 px-1 ${required ? 'text-amber-800':'text-amber-700'}`
+              : "top-3 left-12 text-gray-500"
           }
           pointer-events-none origin-[0]
         `}
