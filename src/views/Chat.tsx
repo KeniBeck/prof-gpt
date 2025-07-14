@@ -27,17 +27,61 @@ const Chat = () => {
     const detectKeyboard = () => {
       // En móviles, cuando el teclado aparece, la altura de la ventana disminuye
       const isKeyboard = window.innerHeight < window.outerHeight * 0.75;
-      setIsKeyboardVisible(isKeyboard);
+      
+      // Actualizamos el estado solo si hay un cambio
+      if (isKeyboard !== isKeyboardVisible) {
+        setIsKeyboardVisible(isKeyboard);
+        
+        // Si el teclado aparece, aseguramos que el scroll esté al final
+        if (isKeyboard) {
+          setTimeout(scrollToBottom, 300);
+        }
+      }
     };
 
+    // Agregamos los event listeners
     window.addEventListener('resize', detectKeyboard);
-    return () => window.removeEventListener('resize', detectKeyboard);
-  }, []);
+    
+    // En iOS el evento resize puede no dispararse cuando aparece el teclado
+    // así que también escuchamos los eventos de focus
+    const handleFocus = () => {
+      if (window.innerWidth <= 768) { // Probablemente un dispositivo móvil
+        setTimeout(() => {
+          setIsKeyboardVisible(true);
+          scrollToBottom();
+        }, 300);
+      }
+    };
+    
+    // Agregamos el listener a los campos de texto
+    const inputs = document.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+      input.addEventListener('focus', handleFocus);
+    });
+    
+    return () => {
+      window.removeEventListener('resize', detectKeyboard);
+      inputs.forEach(input => {
+        input.removeEventListener('focus', handleFocus);
+      });
+    };
+  }, [isKeyboardVisible]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       // Asegurarnos que el scroll se ejecuta después de que el DOM se ha actualizado
       setTimeout(() => {
+        const chatContainer = document.getElementById('chat-messages-container');
+        if (chatContainer) {
+          // Calculamos la altura total del contenedor
+          const scrollHeight = chatContainer.scrollHeight;
+          const clientHeight = chatContainer.clientHeight;
+          
+          // Hacemos scroll hacia el final
+          chatContainer.scrollTop = scrollHeight - clientHeight;
+        }
+        
+        // También usamos scrollIntoView como respaldo
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
@@ -62,20 +106,47 @@ const Chat = () => {
     if (!chatContainer) return;
 
     // Configurar el observer para monitorear cambios en el contenedor de mensajes
-    const observer = new MutationObserver(() => {
-      scrollToBottom();
+    const observer = new MutationObserver((mutations) => {
+      // Verificamos si las mutaciones son relevantes (cambios en los mensajes)
+      const shouldScroll = mutations.some(mutation => 
+        mutation.type === 'childList' || 
+        mutation.type === 'characterData' ||
+        (mutation.type === 'attributes' && mutation.attributeName === 'class')
+      );
+      
+      if (shouldScroll) {
+        // Solo hacemos scroll si el usuario ya estaba en el fondo
+        // o si es un nuevo mensaje del usuario (siempre queremos ver nuestros mensajes)
+        const isAtBottom = chatContainer.dataset.atBottom === 'true';
+        const isNewUserMessage = mutations.some(mutation => {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            // Intentamos detectar si se agregó un mensaje del usuario
+            return Array.from(mutation.addedNodes).some(node => 
+              node.nodeType === 1 && 
+              (node as Element).querySelector('[class*="user"]') !== null
+            );
+          }
+          return false;
+        });
+        
+        if (isAtBottom || isNewUserMessage || messages.length <= 2) {
+          scrollToBottom();
+        }
+      }
     });
 
-    // Iniciar la observación del contenedor
+    // Iniciar la observación del contenedor con opciones más específicas
     observer.observe(chatContainer, { 
       childList: true, 
       subtree: true,
-      characterData: true
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class']
     });
 
     // Limpieza al desmontar
     return () => observer.disconnect();
-  }, []);
+  }, [messages.length]);
 
   const handleSendMessage = async (content?: string, requestType?: string) => {
     const messageContent = content || inputValue.trim();
@@ -147,8 +218,15 @@ const Chat = () => {
 
         {/* Messages Area con padding para el input flotante */}
         <div 
-          className={`flex-1 overflow-y-auto scroll-smooth ${isSelectorVisible ? 'pb-36' : 'pb-28'}`} 
+          className={`flex-1 overflow-y-auto scroll-smooth ${isSelectorVisible ? 'pb-52' : 'pb-44'}`} 
           id="chat-messages-container"
+          onScroll={(e) => {
+            // Guardamos la posición de scroll para detectar si el usuario está al final
+            const target = e.currentTarget;
+            const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+            // Guardamos esta información como un atributo de datos
+            target.dataset.atBottom = isAtBottom ? 'true' : 'false';
+          }}
         >
           <div className="max-w-full lg:max-w-4xl mx-auto p-4 space-y-6 sm:space-y-8">
             {messages.length === 1 && (
@@ -165,16 +243,17 @@ const Chat = () => {
 
             {/* Loading indicator */}
             {isLoading && <ChatLoader />}
-            <div ref={messagesEndRef} className="h-1" />
+            <div ref={messagesEndRef} className="h-12" id="messages-end" />
           </div>
         </div>
 
         {/* Input Area - Flotante SOLO en el área de chat principal */}
         <div 
-          className="absolute left-0 right-0 bottom-0 z-20 mt-4"
+          className="absolute left-0 right-0 bottom-0 z-20"
           style={{
             transition: 'transform 0.3s ease',
-            transform: isKeyboardVisible ? 'translateY(-50vh)' : 'none'
+            transform: isKeyboardVisible ? 'translateY(-50vh)' : 'none',
+            boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.05)'
           }}
         >
           <ChatInput
