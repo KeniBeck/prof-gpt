@@ -218,7 +218,7 @@ const Chat = () => {
 
         {/* Messages Area con padding para el input flotante */}
         <div 
-          className={`flex-1 overflow-y-auto scroll-smooth ${isSelectorVisible ? 'pb-52' : 'pb-44'}`} 
+          className={`flex-1 overflow-y-auto scroll-smooth ${isSelectorVisible ? 'pb-36' : 'pb-20'}`} 
           id="chat-messages-container"
           onScroll={(e) => {
             // Guardamos la posición de scroll para detectar si el usuario está al final
@@ -243,7 +243,7 @@ const Chat = () => {
 
             {/* Loading indicator */}
             {isLoading && <ChatLoader />}
-            <div ref={messagesEndRef} className="h-12" id="messages-end" />
+            <div ref={messagesEndRef} className="h-4" id="messages-end" />
           </div>
         </div>
 
