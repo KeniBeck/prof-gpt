@@ -4,9 +4,10 @@ import axios from 'axios';
 export const ChatRequestType = {
   DEFAULT: 'default',
   PLANIFICADOR: 'planificador',
-  INTEGRADOR: 'integrador',
+  RECURSOS: 'recursos', // <-- Reemplaza 'integrador' por 'recursos'
   ADECUACION: 'adecuacion',
   SEGUIMIENTO: 'seguimiento',
+  GESTION: 'gestion', // <-- Agregado para QuickAction de gestión
 } as const;
 
 export type ChatRequestType = typeof ChatRequestType[keyof typeof ChatRequestType];
@@ -89,49 +90,51 @@ class ChatService {
         pregunta: pregunta.trim(),
       };
 
-      console.log(`📤 Enviando payload a ${endpoint}:`, payload);
-
       // Hacer la petición al endpoint específico
-      const response = await chatApiClient.post(endpoint, payload);
+      const response = await chatApiClient.post(endpoint, payload, { validateStatus: () => true });
 
-      console.log('📥 Respuesta recibida:', response.status);
-      console.log('📊 Datos de respuesta:', response.data);
-
-      // Verificar que la respuesta sea exitosa
-      if ((response.status === 200 || response.status === 201) && response.data.success) {
+      // Manejo unificado de status codes
+      if (response.status === 200 || response.status === 201) {
         const responseData = response.data;
-
-        // Verificar si la respuesta contiene un archivo (usando 'filename' en lugar de 'fileName')
+        // Si contiene archivo Excel (base64 + filename + contentType)
         if (responseData.data && responseData.filename && responseData.contentType) {
-          // La respuesta contiene un archivo en base64
-          console.log('📁 Archivo detectado:', responseData.filename);
-          
-          // Convertir base64 a blob
           const fileBlob = this.base64ToBlob(responseData.data, responseData.contentType);
-          
           return {
             success: true,
             data: 'Archivo generado exitosamente',
             message: 'Descarga lista',
             fileBlob: fileBlob,
-            fileName: responseData.filename, // Mapear 'filename' a 'fileName'
+            fileName: responseData.filename,
             contentType: responseData.contentType,
           };
         } else {
-          // Es una respuesta de texto normal
+          // Respuesta de texto normal
           return {
             success: true,
             data: responseData.data,
-            message: 'Respuesta recibida exitosamente',
+            message: responseData.message || 'Respuesta recibida exitosamente',
           };
         }
-      } else {
+      } else if (response.status === 400) {
+        // Mostrar el mensaje de error devuelto por la API
+        const errorMsg = response.data?.message || response.data?.error || 'Error de validación';
         return {
           success: false,
-          error: 'Respuesta inesperada del servidor',
+          error: errorMsg,
+        };
+      } else if (response.status === 500) {
+        // Error interno del servidor
+        return {
+          success: false,
+          error: 'Error interno del servidor. Por favor, intenta nuevamente más tarde.',
+        };
+      } else {
+        // Otros errores
+        return {
+          success: false,
+          error: `Error ${response.status}: Respuesta inesperada del servidor`,
         };
       }
-
     } catch (error) {
       console.error('❌ Error al enviar mensaje:', error);
 
@@ -180,13 +183,13 @@ class ChatService {
   }
 
   /**
-   * Envía una consulta específica al módulo Integrador
+   * Envía una consulta específica al módulo Recursos
    * @param usuario - Email del usuario autenticado
-   * @param pregunta - Consulta de planificación integrada (grado, área, unidad, semana, número de clase, proyecto)
-   * @returns Promise con la respuesta del integrador (típicamente archivo Excel)
+   * @param pregunta - Consulta de recursos (tipo de recurso, tema, nivel educativo)
+   * @returns Promise con la respuesta de recursos (típicamente archivo Excel)
    */
-  async sendIntegradorRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
-    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/integrador-frontend');
+  async sendRecursosRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/recursos-frontend');
   }
 
   /**
@@ -213,7 +216,7 @@ class ChatService {
    * Método unificado para enviar mensajes según el tipo de consulta
    * @param usuario - Email del usuario autenticado
    * @param pregunta - Pregunta o consulta del usuario
-   * @param tipo - Tipo de consulta (planificador, integrador, adecuación, seguimiento)
+   * @param tipo - Tipo de consulta (planificador, recursos, adecuación, seguimiento)
    * @returns Promise con la respuesta según el tipo de consulta
    */
   async sendRequestByType(
@@ -242,8 +245,8 @@ class ChatService {
     switch (tipo) {
       case ChatRequestType.PLANIFICADOR:
         return this.sendPlanificadorRequest(usuario, pregunta);
-      case ChatRequestType.INTEGRADOR:
-        return this.sendIntegradorRequest(usuario, pregunta);
+      case ChatRequestType.RECURSOS:
+        return this.sendRecursosRequest(usuario, pregunta);
       case ChatRequestType.ADECUACION:
         return this.sendAdecuacionRequest(usuario, pregunta);
       case ChatRequestType.SEGUIMIENTO:

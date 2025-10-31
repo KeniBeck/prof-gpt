@@ -22,11 +22,6 @@ export interface QuickAction {
   type?: string; // Tipo de consulta: planificador, integrador, adecuacion, seguimiento
 }
 
-export interface ChatServiceRequest {
-  usuario: string;
-  pregunta: string;
-}
-
 export interface ChatServiceResponse {
   success: boolean;
   data?: any;

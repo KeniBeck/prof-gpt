@@ -6,6 +6,7 @@ import {
   IoDocumentTextOutline,
   IoAnalyticsOutline,
 } from "react-icons/io5";
+import { MdOutlineHandyman } from "react-icons/md";
 import type { QuickAction } from "../../lib/interface/chat";
 import { ChatRequestType } from "../../services/chatService";
 import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
@@ -30,9 +31,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     },
     {
       icon: IoDocumentTextOutline,
-      label: "Integrador",
-      prompt: "Genera la planificación de la clase 1 de semana 2 unidad 3 para Comunicación y Lenguaje de 6th para PIT.",
-      type: ChatRequestType.INTEGRADOR,
+      label: "Recursos",
+      prompt: "Genera una hoja de trabajo para la semana 4 unidad 2 de matemática de 2nd [con diez ejercicios de aplicaciones prácticas]",
+      type: ChatRequestType.RECURSOS,
     },
     {
       icon: IoPeopleOutline,
@@ -45,6 +46,12 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: "Seguimiento",
       prompt: "¿Cuál es el avance de planificación en Matemática de 12th?",
       type: ChatRequestType.SEGUIMIENTO,
+    },
+    {
+      icon: MdOutlineHandyman,
+      label: "Gestión",
+      prompt: "Carga tu archivo Excel para validar y procesar.",
+      type: ChatRequestType.GESTION,
     },
   ];
 
