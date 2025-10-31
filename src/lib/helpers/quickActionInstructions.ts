@@ -2,7 +2,7 @@ import { ChatRequestType } from "../../services/chatService";
 
 export const quickActionInstructions = {
   [ChatRequestType.PLANIFICADOR]: 
-    "**Planificador**\n\nPara generar una planificación, necesito que me brindes los siguientes datos:\n\n- Grado (ej: 12th, kinder)\n- Área (ej: Matemática, Literature & Vocabulary)\n- Unidad (ej: unidad 4, quarter 3)\n- Clase (ej: clase 1, clase 2)\n- [Opcional] Observaciones adicionales\n\nEjemplo: \"Genera la planificación de la clase 1 de semana 2 unidad 4 para física fundamental de 12th [cerrando con una prueba corta]\"",
+    "**Planificador**\n\nPara generar una planificación, necesito que me brindes los siguientes datos:\n\n- Grado (ej: 12th, kinder)\n- Área (ej: Matemática, Literature & Vocabulary)\n- Unidad (ej: unidad 4, quarter 3)\n- [Opcional] Observaciones adicionales\n\nEjemplo: \"Genera la planificación de la semana 2 unidad 4 para física fundamental de 12th [cerrando con una prueba corta]\"",
   
   [ChatRequestType.INTEGRADOR]:
     "**Integrador**\n\nPara generar una planificación de Proyecto Integrador, necesito que me brindes los siguientes datos:\n\n- Grado (ej: 12th, kinder)\n- Área (ej: Matemática, Literature & Vocabulary)\n- Unidad (ej: unidad 4, quarter 3)\n- Clase (ej: clase 1, clase 2)\n- Proyecto (ej: PIT, PSA)\n- [Opcional] Observaciones adicionales\n\nEjemplo: \"Genera la planificación de la clase 1 de semana 2 unidad 3 para comunicación y lenguaje de 6th para PIT.\"",
