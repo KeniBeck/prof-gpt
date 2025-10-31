@@ -7,6 +7,7 @@ export const ChatRequestType = {
   INTEGRADOR: 'integrador',
   ADECUACION: 'adecuacion',
   SEGUIMIENTO: 'seguimiento',
+  GESTION: 'gestion', // <-- Agregado para QuickAction de gestión
 } as const;
 
 export type ChatRequestType = typeof ChatRequestType[keyof typeof ChatRequestType];

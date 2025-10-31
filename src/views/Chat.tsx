@@ -15,12 +15,16 @@ import ChatLoader from "../components/ui/ChatLoader";
 const Chat = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { messages, setMessages, isLoading, sendMessage, activeRequestType, setActiveRequestType } = useChatLogic(user?.email);
+  const { messages, setMessages, isLoading, sendMessage, sendGestionArchivo, activeRequestType, setActiveRequestType } = useChatLogic(user?.email);
 
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isSelectorVisible, setIsSelectorVisible] = useState(false);
+  // Guardar el base64 del archivo Excel para gestión
+  const [gestionFileBase64, setGestionFileBase64] = useState<string>("");
+  // Estado para el nombre del archivo Excel en gestión
+  const [gestionFileName, setGestionFileName] = useState<string>("");
 
   // Detectar cambios de tamaño para el teclado
   useEffect(() => {
@@ -152,17 +156,28 @@ const Chat = () => {
     const messageContent = content || inputValue.trim();
     if (!messageContent) return;
 
-    // Si no hay un tipo de consulta activo y no se proporciona uno, no permitimos el envío
     if (activeRequestType === ChatRequestType.DEFAULT && !requestType) {
-      alert("Por favor, selecciona primero una opción (Planificador, Integrador, Adecuación, Seguimiento)");
+      alert("Por favor, selecciona primero una opción (Planificador, Integrador, Adecuación, Seguimiento, Gestión)");
+      return;
+    }
+
+    // Si es gestión, enviar archivo
+    if ((requestType || activeRequestType) === ChatRequestType.GESTION) {
+      await sendGestionArchivo(inputValue, gestionFileName);
+      setGestionFileName("");
+      setInputValue("");
+      setTimeout(scrollToBottom, 100);
       return;
     }
 
     await sendMessage(messageContent, requestType);
     setInputValue("");
-    
-    // Forzar scroll después de enviar mensaje
     setTimeout(scrollToBottom, 100);
+  };
+
+  // Pasar el base64 desde el input
+  const handleGestionFileBase64 = (base64: string) => {
+    setGestionFileBase64(base64);
   };
 
   // Función para manejar la selección de un tipo de consulta sin enviar mensaje
@@ -266,6 +281,10 @@ const Chat = () => {
             onTypeSelect={handleTypeSelection}
             onShowInstructions={handleShowInstructions}
             onTypeSelectorToggle={setIsSelectorVisible}
+            gestionFileBase64={gestionFileBase64}
+            setGestionFileBase64={handleGestionFileBase64}
+            gestionFileName={gestionFileName}
+            setGestionFileName={setGestionFileName}
           />
         </div>
       </div>

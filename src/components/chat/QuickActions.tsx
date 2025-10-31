@@ -6,6 +6,7 @@ import {
   IoDocumentTextOutline,
   IoAnalyticsOutline,
 } from "react-icons/io5";
+import { MdOutlineHandyman } from "react-icons/md";
 import type { QuickAction } from "../../lib/interface/chat";
 import { ChatRequestType } from "../../services/chatService";
 import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
@@ -45,6 +46,12 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       label: "Seguimiento",
       prompt: "¿Cuál es el avance de planificación en Matemática de 12th?",
       type: ChatRequestType.SEGUIMIENTO,
+    },
+    {
+      icon: MdOutlineHandyman,
+      label: "Gestión",
+      prompt: "Carga tu archivo Excel para validar y procesar.",
+      type: ChatRequestType.GESTION,
     },
   ];
 

@@ -6,6 +6,7 @@ import {
   IoDocumentTextOutline,
   IoAnalyticsOutline,
 } from "react-icons/io5";
+import { MdOutlineHandyman } from "react-icons/md";
 import { ChatRequestType } from "../../services/chatService";
 
 interface TypeSelectorProps {
@@ -39,6 +40,11 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({
       type: ChatRequestType.SEGUIMIENTO,
       icon: IoAnalyticsOutline,
       label: "Seguimiento",
+    },
+    {
+      type: ChatRequestType.GESTION,
+      icon: MdOutlineHandyman,
+      label: "Gestión",
     },
   ];
 
