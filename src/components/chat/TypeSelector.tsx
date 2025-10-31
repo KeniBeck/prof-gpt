@@ -27,9 +27,9 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({
       label: "Planificador",
     },
     {
-      type: ChatRequestType.INTEGRADOR,
+      type: ChatRequestType.RECURSOS,
       icon: IoDocumentTextOutline,
-      label: "Integrador",
+      label: "Recursos",
     },
     {
       type: ChatRequestType.ADECUACION,

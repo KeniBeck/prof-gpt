@@ -4,7 +4,7 @@ import axios from 'axios';
 export const ChatRequestType = {
   DEFAULT: 'default',
   PLANIFICADOR: 'planificador',
-  INTEGRADOR: 'integrador',
+  RECURSOS: 'recursos', // <-- Reemplaza 'integrador' por 'recursos'
   ADECUACION: 'adecuacion',
   SEGUIMIENTO: 'seguimiento',
   GESTION: 'gestion', // <-- Agregado para QuickAction de gestión
@@ -183,13 +183,13 @@ class ChatService {
   }
 
   /**
-   * Envía una consulta específica al módulo Integrador
+   * Envía una consulta específica al módulo Recursos
    * @param usuario - Email del usuario autenticado
-   * @param pregunta - Consulta de planificación integrada (grado, área, unidad, semana, número de clase, proyecto)
-   * @returns Promise con la respuesta del integrador (típicamente archivo Excel)
+   * @param pregunta - Consulta de recursos (tipo de recurso, tema, nivel educativo)
+   * @returns Promise con la respuesta de recursos (típicamente archivo Excel)
    */
-  async sendIntegradorRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
-    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/integrador-frontend');
+  async sendRecursosRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
+    return this.sendMessageToEndpoint(usuario, pregunta, '/chat/recursos-frontend');
   }
 
   /**
@@ -216,7 +216,7 @@ class ChatService {
    * Método unificado para enviar mensajes según el tipo de consulta
    * @param usuario - Email del usuario autenticado
    * @param pregunta - Pregunta o consulta del usuario
-   * @param tipo - Tipo de consulta (planificador, integrador, adecuación, seguimiento)
+   * @param tipo - Tipo de consulta (planificador, recursos, adecuación, seguimiento)
    * @returns Promise con la respuesta según el tipo de consulta
    */
   async sendRequestByType(
@@ -245,8 +245,8 @@ class ChatService {
     switch (tipo) {
       case ChatRequestType.PLANIFICADOR:
         return this.sendPlanificadorRequest(usuario, pregunta);
-      case ChatRequestType.INTEGRADOR:
-        return this.sendIntegradorRequest(usuario, pregunta);
+      case ChatRequestType.RECURSOS:
+        return this.sendRecursosRequest(usuario, pregunta);
       case ChatRequestType.ADECUACION:
         return this.sendAdecuacionRequest(usuario, pregunta);
       case ChatRequestType.SEGUIMIENTO:

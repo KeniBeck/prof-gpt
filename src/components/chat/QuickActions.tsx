@@ -31,9 +31,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     },
     {
       icon: IoDocumentTextOutline,
-      label: "Integrador",
-      prompt: "Genera la planificación de la clase 1 de semana 2 unidad 3 para Comunicación y Lenguaje de 6th para PIT.",
-      type: ChatRequestType.INTEGRADOR,
+      label: "Recursos",
+      prompt: "Genera una hoja de trabajo para la semana 4 unidad 2 de matemática de 2nd [con diez ejercicios de aplicaciones prácticas]",
+      type: ChatRequestType.RECURSOS,
     },
     {
       icon: IoPeopleOutline,

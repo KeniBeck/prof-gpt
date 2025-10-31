@@ -35,7 +35,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     switch(message.requestType) {
       case ChatRequestType.PLANIFICADOR:
         return <IoBookOutline className="h-5 w-5 text-red-600" />;
-      case ChatRequestType.INTEGRADOR:
+      case ChatRequestType.RECURSOS:
         return <IoDocumentTextOutline className="h-5 w-5 text-red-600" />;
       case ChatRequestType.ADECUACION:
         return <IoPeopleOutline className="h-5 w-5 text-red-600" />;
