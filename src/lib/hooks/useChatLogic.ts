@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Message } from "../interface/chat";
-import chatService, { ChatRequestType } from "../../services/chatService"; 
-import { gestionArchivo } from '../../services/gestionService';
+import chatService, { ChatRequestType } from "../../services/chatService";
 
 export const useChatLogic = (userEmail?: string) => {
   const [messages, setMessages] = useState<Message[]>([
@@ -35,87 +34,74 @@ export const useChatLogic = (userEmail?: string) => {
     setIsLoading(true);
 
     try {
-      let response;
+      // Para gestión, NO usar sendMessage, usar sendGestionArchivo
       if ((requestType || activeRequestType) === ChatRequestType.GESTION) {
-        // Para gestión, usar el servicio especial
-        response = await gestionArchivo(userEmail, content, ''); // El tercer parámetro debe ser el base64 del archivo, aquí solo placeholder
-        // Aquí deberías manejar el flujo de archivo, pero como el mensaje es texto, solo mostramos el resultado
-        if (response.success) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: '⚠️ Para gestión de archivos, por favor usa el selector de archivos Excel.',
+          role: 'assistant',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Usamos el nuevo método sendRequestByType con el tipo activo
+      const response = await chatService.sendRequestByType(
+        userEmail,
+        content,
+        (requestType || activeRequestType) as ChatRequestType
+      );
+
+      if (response.success) {
+        if (response.fileBlob && response.fileName) {
+          // Descargar el archivo automáticamente
+          chatService.downloadFile(response.fileBlob, response.fileName);
+
+          // Mostrar mensaje de confirmación con datos del archivo
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: response.message || 'Archivo procesado exitosamente',
-            role: 'assistant',
+            content: `✅ He generado el archivo solicitado. Puedes descargarlo usando el botón de abajo.`,
+            role: "assistant",
             timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-        } else if (response.data) {
-          // Si hay errores, podrías mostrar un mensaje y permitir descargar el archivo
-          const assistantMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            content: 'Se encontraron errores en el archivo. Descarga el archivo de errores para revisarlos.',
-            role: 'assistant',
-            timestamp: new Date(),
-            fileBlob: new Blob([Uint8Array.from(atob(response.data), c => c.charCodeAt(0))], { type: response.contentType }),
-            fileName: response.filename,
+            fileBlob: response.fileBlob,
+            fileName: response.fileName,
           };
           setMessages((prev) => [...prev, assistantMessage]);
         } else {
-          const errorMessage: Message = {
+          // Respuesta de texto normal
+          const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
-            content: `Lo siento, ocurrió un error: ${response.message || 'Error desconocido'}`,
-            role: 'assistant',
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-        }
-      } else {
-        // Usamos el nuevo método sendRequestByType con el tipo activo
-        response = await chatService.sendRequestByType(
-          userEmail,
-          content,
-          (requestType || activeRequestType) as ChatRequestType
-        );
-
-        if (response.success) {
-          if (response.fileBlob && response.fileName) {
-            // Descargar el archivo automáticamente
-            chatService.downloadFile(response.fileBlob, response.fileName);
-
-            // Mostrar mensaje de confirmación con datos del archivo
-            const assistantMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              content: `✅ He generado el archivo solicitado. Puedes descargarlo usando el botón de abajo.`,
-              role: "assistant",
-              timestamp: new Date(),
-              fileBlob: response.fileBlob,
-              fileName: response.fileName,
-            };
-            setMessages((prev) => [...prev, assistantMessage]);
-          } else {
-            // Respuesta de texto normal
-            const assistantMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              content:
-                response.data?.toString() ||
-                response.message ||
-                "Respuesta recibida",
-              role: "assistant",
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, assistantMessage]);
-          }
-        } else {
-          // Manejar error
-          const errorMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            content: `Lo siento, ocurrió un error: ${
-              response.error || "Error desconocido"
-            }`,
+            content:
+              response.data?.toString() ||
+              response.message ||
+              "Respuesta recibida",
             role: "assistant",
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, errorMessage]);
+          setMessages((prev) => [...prev, assistantMessage]);
         }
+      } else {
+        // Manejar error con validaciones amigables
+        let errorContent = `Lo siento, ocurrió un error: ${response.error || "Error desconocido"}`;
+        
+        // Mensajes de error más amigables
+        if (response.error?.includes('10 caracteres')) {
+          errorContent = '⚠️ Tu pregunta es muy corta. Por favor, escribe al menos 10 caracteres.';
+        } else if (response.error?.includes('500 caracteres')) {
+          errorContent = '⚠️ Tu pregunta es muy larga. Por favor, reduce el texto a máximo 500 caracteres.';
+        } else if (response.error?.includes('Email')) {
+          errorContent = '⚠️ Parece que hay un problema con tu correo electrónico. Por favor, cierra sesión y vuelve a iniciar.';
+        }
+
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: errorContent,
+          role: "assistant",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error("Error al enviar mensaje:", error);
@@ -135,46 +121,54 @@ export const useChatLogic = (userEmail?: string) => {
   const sendGestionArchivo = async (fileBase64: string, filename: string) => {
     if (!fileBase64 || !filename || !userEmail) return;
     setIsLoading(true);
+    
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: filename,
+      content: `📎 ${filename}`,
       role: "user",
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
+
     try {
-      const response = await gestionArchivo(userEmail, filename, fileBase64);
+      // Usar chatService directamente
+      const response = await chatService.sendGestionRequest(userEmail, filename, fileBase64);
+      
       if (response.success) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: response.message || 'Archivo procesado exitosamente',
+          content: `✅ ${response.message || 'Archivo procesado exitosamente'}`,
           role: 'assistant',
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
-      } else if (response.data) {
+      } else if (response.fileBlob && response.fileName) {
+        // Hay errores de validación - archivo Excel con errores
+        chatService.downloadFile(response.fileBlob, response.fileName);
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: 'Se encontraron errores en el archivo. Descarga el archivo de errores para revisarlos.',
+          content: '⚠️ Se encontraron errores de validación en el archivo. Descarga el archivo de errores para revisarlos y corregirlos.',
           role: 'assistant',
           timestamp: new Date(),
-          fileBlob: new Blob([Uint8Array.from(atob(response.data), c => c.charCodeAt(0))], { type: response.contentType }),
-          fileName: response.filename,
+          fileBlob: response.fileBlob,
+          fileName: response.fileName,
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: `Lo siento, ocurrió un error: ${response.message || 'Error desconocido'}`,
+          content: `❌ Lo siento, ocurrió un error: ${response.error || 'Error desconocido'}`,
           role: 'assistant',
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
       }
     } catch (error) {
+      console.error("Error al enviar archivo de gestión:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Lo siento, no pude procesar tu archivo. Inténtalo de nuevo.",
+        content: "❌ Lo siento, no pude procesar tu archivo. Por favor, verifica el formato y tamaño del archivo e inténtalo de nuevo.",
         role: "assistant",
         timestamp: new Date(),
       };
