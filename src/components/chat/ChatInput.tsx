@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { IoSend, IoChevronUpOutline, IoChevronDownOutline } from "react-icons/io5";
-import { ChatRequestType } from "../../services/chatService";
+import chatService, { ChatRequestType } from "../../services/chatService";
 import TypeSelector from "./TypeSelector";
 import { quickActionInstructions } from "../../lib/helpers/quickActionInstructions";
 
@@ -102,18 +102,35 @@ const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex-1 relative">
             {activeRequestType === ChatRequestType.GESTION ? (
               <div className="flex flex-col gap-2">
-                <label htmlFor="gestion-excel-upload" className="w-full cursor-pointer flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-dashed border-red-300 bg-white hover:bg-red-50 text-red-400 font-medium text-xs transition-all shadow-sm">
-                  <span className="material-icons" style={{fontSize: '18px'}}>upload_file</span>
-                  {gestionFile ? gestionFile.name : "Selecciona archivo Excel (.xlsx)"}
+                <label htmlFor="gestion-excel-upload" className={`w-full cursor-pointer flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-dashed ${
+                  gestionFile ? 'border-green-400 bg-green-50' : 'border-red-300 bg-white hover:bg-red-50'
+                } ${inputDisabled ? 'opacity-50 cursor-not-allowed' : ''} text-red-600 font-medium text-xs transition-all shadow-sm`}>
+                  <span className="material-icons" style={{fontSize: '18px'}}>
+                    {gestionFile ? '✓' : '📎'}
+                  </span>
+                  {gestionFile ? gestionFile.name : "Selecciona archivo Excel (.xlsx o .xls)"}
                 </label>
                 <input
                   id="gestion-excel-upload"
                   type="file"
-                  accept=".xlsx"
+                  accept=".xlsx,.xls"
                   onChange={async (e) => {
                     const file = e.target.files?.[0] || null;
-                    setGestionFile(file);
+                    
                     if (file) {
+                      // Validar el archivo antes de procesarlo
+                      const validation = chatService.validateGestionFile(file);
+                      if (!validation.valid) {
+                        alert(`⚠️ ${validation.error}`);
+                        e.target.value = ''; // Limpiar el input
+                        setGestionFile(null);
+                        if (setGestionFileBase64) setGestionFileBase64("");
+                        if (setGestionFileName) setGestionFileName("");
+                        onChange("");
+                        return;
+                      }
+
+                      setGestionFile(file);
                       const reader = new FileReader();
                       reader.onload = () => {
                         const base64 = (reader.result as string).split(",")[1];
@@ -123,6 +140,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       };
                       reader.readAsDataURL(file);
                     } else {
+                      setGestionFile(null);
                       if (setGestionFileBase64) setGestionFileBase64("");
                       if (setGestionFileName) setGestionFileName("");
                       onChange("");
@@ -131,12 +149,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   className="hidden"
                   disabled={inputDisabled}
                 />
+                {gestionFile && (
+                  <p className="text-xs text-gray-600 flex items-center gap-1">
+                    <span>📏</span>
+                    Tamaño: {(gestionFile.size / 1024).toFixed(2)} KB
+                  </p>
+                )}
                 <Button
                   onClick={onSend}
                   disabled={!gestionFile || !gestionFileBase64 || inputDisabled}
                   size="sm"
-                  className="w-full"
+                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  <IoSend className="h-4 w-4 mr-2" />
                   Enviar archivo Excel
                 </Button>
               </div>
@@ -156,7 +181,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 />
                 <Button
                   onClick={onSend}
-                  disabled={!value.trim() || inputDisabled}
+                  disabled={!value.trim() || inputDisabled || value.trim().length < 10 || value.trim().length > 500}
                   size="sm"
                   className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 
                            bg-red-600 hover:bg-red-700 p-1 sm:p-2"
@@ -167,11 +192,26 @@ const ChatInput: React.FC<ChatInputProps> = ({
             )}
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1 text-center px-2">
-          {!isQuickActionSelected
-            ? "Por favor, selecciona una opción para comenzar (Planificador, Integrador, Adecuación, Seguimiento)"
-            : "Mentora puede cometer errores. Verifica la información importante."}
-        </p>
+        <div className="flex justify-between items-center px-2 mt-1">
+          <p className="text-xs text-gray-500">
+            {!isQuickActionSelected
+              ? "Por favor, selecciona una opción para comenzar (Planificador, Recursos, Adecuación, Seguimiento, Gestión)"
+              : "Mentora puede cometer errores. Verifica la información importante."}
+          </p>
+          {isQuickActionSelected && activeRequestType !== ChatRequestType.GESTION && (
+            <p className={`text-xs ${
+              value.trim().length < 10 
+                ? 'text-red-500' 
+                : value.trim().length > 500 
+                ? 'text-red-500' 
+                : value.trim().length > 450 
+                ? 'text-amber-500' 
+                : 'text-gray-400'
+            }`}>
+              {value.trim().length}/500
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

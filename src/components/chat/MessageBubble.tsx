@@ -24,6 +24,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     });
   };
 
+  // Helper para obtener extensión del archivo
+  const getFileExtension = (fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toUpperCase();
+    return ext || 'FILE';
+  };
+
+  // Helper para formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
   // Verifica si es un mensaje de instrucciones
   const isInstructionMessage = message.role === "assistant" && 
     message.content.includes("**") && 
@@ -137,10 +152,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           {/* Enlace de descarga si el mensaje tiene un archivo */}
           {message.fileBlob && message.fileName && (
             <div className="mt-4 pt-3 border-t border-gray-300">
-              <div className="flex flex-col">
-                <div className="bg-amber-50 border border-amber-200 rounded-md p-2 mb-3 flex items-start shadow-sm">
+              <div className="flex flex-col gap-2">
+                <div className="bg-gradient-to-r from-amber-50 to-red-50 border border-amber-200 rounded-md p-3 flex items-start shadow-sm">
                   <span className="text-amber-500 mr-2 text-lg md:text-xl">📋</span>
-                  <span className="text-xs md:text-sm text-gray-700 font-medium">Archivo generado listo para descargar</span>
+                  <div className="flex-1">
+                    <span className="text-xs md:text-sm text-gray-700 font-medium block">Archivo generado listo para descargar</span>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                      <span>📄 {getFileExtension(message.fileName)}</span>
+                      {message.fileBlob && (
+                        <span>• {formatFileSize(message.fileBlob.size)}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <Button
                   variant="outline"
@@ -150,10 +173,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                       chatService.downloadFile(message.fileBlob, message.fileName);
                     }
                   }}
-                  className="text-xs md:text-sm bg-white hover:bg-gray-50 border border-red-200 hover:border-red-300 text-gray-700 hover:text-gray-900 cursor-pointer w-full flex items-center justify-center px-3 py-2 md:py-3 rounded-md shadow-sm hover:shadow transition-all"
+                  className="text-xs md:text-sm bg-white hover:bg-red-50 border border-red-200 hover:border-red-400 text-gray-700 hover:text-red-700 cursor-pointer w-full flex items-center justify-center px-3 py-2 md:py-3 rounded-md shadow-sm hover:shadow-md transition-all font-medium"
                 >
                   <span className="mr-2 flex-shrink-0 text-red-500 text-base md:text-lg">📥</span>
-                  <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md overflow-hidden text-ellipsis font-medium">
+                  <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md overflow-hidden text-ellipsis">
                     {message.fileName}
                   </span>
                 </Button>

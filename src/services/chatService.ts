@@ -115,24 +115,14 @@ class ChatService {
             message: responseData.message || 'Respuesta recibida exitosamente',
           };
         }
-      } else if (response.status === 400) {
-        // Mostrar el mensaje de error devuelto por la API
-        const errorMsg = response.data?.message || response.data?.error || 'Error de validación';
+      } else {
+        // Manejar cualquier error (400, 500, 502, etc.)
+        // Priorizar el mensaje del backend si existe
+        const errorMsg = response.data?.message || response.data?.error || 
+                        `Error ${response.status}: ${response.statusText || 'Error del servidor'}`;
         return {
           success: false,
           error: errorMsg,
-        };
-      } else if (response.status === 500) {
-        // Error interno del servidor
-        return {
-          success: false,
-          error: 'Error interno del servidor. Por favor, intenta nuevamente más tarde.',
-        };
-      } else {
-        // Otros errores
-        return {
-          success: false,
-          error: `Error ${response.status}: Respuesta inesperada del servidor`,
         };
       }
     } catch (error) {
@@ -183,13 +173,89 @@ class ChatService {
   }
 
   /**
-   * Envía una consulta específica al módulo Recursos
+   * Envía una consulta específica al módulo Recursos (reemplaza Integrador)
    * @param usuario - Email del usuario autenticado
-   * @param pregunta - Consulta de recursos (tipo de recurso, tema, nivel educativo)
-   * @returns Promise con la respuesta de recursos (típicamente archivo Excel)
+   * @param pregunta - Consulta de recursos (grado, área, unidad, tipo de recurso)
+   * @returns Promise con la respuesta de recursos (puede ser PDF, DOCX, PPTX, XLSX, MP4, imágenes, ZIP)
    */
   async sendRecursosRequest(usuario: string, pregunta: string): Promise<ChatResponse> {
     return this.sendMessageToEndpoint(usuario, pregunta, '/chat/recursos-frontend');
+  }
+
+  /**
+   * Envía un archivo Excel para validación y procesamiento (Módulo Gestión)
+   * @param usuario - Email del usuario autenticado
+   * @param filename - Nombre del archivo Excel
+   * @param fileBase64 - Archivo en formato Base64
+   * @returns Promise con la respuesta (éxito o Excel con errores)
+   */
+  async sendGestionRequest(usuario: string, filename: string, fileBase64: string): Promise<ChatResponse> {
+    try {
+      if (!usuario || !filename || !fileBase64) {
+        throw new Error('Usuario, filename y archivo son requeridos');
+      }
+
+      const payload = {
+        usuario: usuario.trim(),
+        filename: filename.trim(),
+        file_base64: fileBase64,
+      };
+
+      const response = await chatApiClient.post('/chat/gestion-frontend', payload, { 
+        validateStatus: () => true 
+      });
+
+      // Manejo específico para gestión
+      if (response.status === 200 || response.status === 201) {
+        const responseData = response.data;
+        return {
+          success: true,
+          message: responseData.message || 'Archivo procesado exitosamente',
+        };
+      } else if (response.status === 400) {
+        // Errores de validación - retorna Excel con errores
+        const responseData = response.data;
+        if (responseData.data && responseData.filename) {
+          const fileBlob = this.base64ToBlob(responseData.data, responseData.contentType);
+          return {
+            success: false,
+            message: 'Se encontraron errores de validación',
+            fileBlob: fileBlob,
+            fileName: responseData.filename,
+            contentType: responseData.contentType,
+          };
+        }
+        return {
+          success: false,
+          error: responseData.message || responseData.error || 'Error de validación',
+        };
+      } else {
+        // Manejar cualquier otro error (500, 502, etc.)
+        const responseData = response.data;
+        const errorMsg = responseData?.message || responseData?.error || 
+                        `Error ${response.status}: ${response.statusText || 'Error del servidor'}`;
+        return {
+          success: false,
+          error: errorMsg,
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error al enviar archivo de gestión:', error);
+      
+      if (axios.isAxiosError(error)) {
+        const errorData = error.response?.data;
+        const message = errorData?.message || errorData?.error || error.message;
+        return {
+          success: false,
+          error: message,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Error desconocido al enviar archivo',
+      };
+    }
   }
 
   /**
@@ -213,6 +279,59 @@ class ChatService {
   }
 
   /**
+   * Valida una pregunta según los requisitos del backend (10-500 caracteres)
+   * @param pregunta - Pregunta a validar
+   * @returns Resultado de la validación
+   */
+  validatePregunta(pregunta: string): { valid: boolean; error?: string } {
+    if (!pregunta || pregunta.trim().length === 0) {
+      return { valid: false, error: 'La pregunta no puede estar vacía' };
+    }
+    if (pregunta.trim().length < 10) {
+      return { valid: false, error: 'La pregunta debe tener al menos 10 caracteres' };
+    }
+    if (pregunta.trim().length > 500) {
+      return { valid: false, error: 'La pregunta no debe exceder 500 caracteres' };
+    }
+    return { valid: true };
+  }
+
+  /**
+   * Valida un email
+   * @param email - Email a validar
+   * @returns true si es válido
+   */
+  validateEmail(email: string): boolean {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  }
+
+  /**
+   * Valida un archivo para gestión (tamaño y extensión)
+   * @param file - Archivo a validar
+   * @returns Resultado de la validación
+   */
+  validateGestionFile(file: File): { valid: boolean; error?: string } {
+    // Validar extensión
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      return { valid: false, error: 'Solo se permiten archivos Excel (.xlsx o .xls)' };
+    }
+    
+    // Validar tamaño (10MB máximo)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      return { valid: false, error: 'El archivo no debe superar 10MB' };
+    }
+    
+    // Validar nombre (255 caracteres máximo)
+    if (file.name.length > 255) {
+      return { valid: false, error: 'El nombre del archivo es demasiado largo' };
+    }
+    
+    return { valid: true };
+  }
+
+  /**
    * Método unificado para enviar mensajes según el tipo de consulta
    * @param usuario - Email del usuario autenticado
    * @param pregunta - Pregunta o consulta del usuario
@@ -224,17 +343,17 @@ class ChatService {
     pregunta: string, 
     tipo: ChatRequestType = ChatRequestType.DEFAULT
   ): Promise<ChatResponse> {
-    // Validar que la pregunta no esté vacía y tenga longitud mínima
-    if (!pregunta || pregunta.trim().length < 3) {
+    // Validar pregunta (10-500 caracteres)
+    const preguntaValidation = this.validatePregunta(pregunta);
+    if (!preguntaValidation.valid) {
       return {
         success: false,
-        error: 'La consulta debe tener al menos 3 caracteres',
+        error: preguntaValidation.error,
       };
     }
 
-    // Validar formato de email básico
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(usuario)) {
+    // Validar formato de email
+    if (!this.validateEmail(usuario)) {
       return {
         success: false,
         error: 'Email de usuario no válido',

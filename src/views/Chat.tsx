@@ -154,21 +154,28 @@ const Chat = () => {
 
   const handleSendMessage = async (content?: string, requestType?: string) => {
     const messageContent = content || inputValue.trim();
-    if (!messageContent) return;
 
     if (activeRequestType === ChatRequestType.DEFAULT && !requestType) {
-      alert("Por favor, selecciona primero una opción (Planificador, Integrador, Adecuación, Seguimiento, Gestión)");
+      alert("Por favor, selecciona primero una opción (Planificador, Recursos, Adecuación, Seguimiento, Gestión)");
       return;
     }
 
     // Si es gestión, enviar archivo
     if ((requestType || activeRequestType) === ChatRequestType.GESTION) {
-      await sendGestionArchivo(inputValue, gestionFileName);
+      if (!gestionFileBase64 || !gestionFileName) {
+        alert("Por favor, selecciona un archivo Excel primero.");
+        return;
+      }
+      await sendGestionArchivo(gestionFileBase64, gestionFileName);
       setGestionFileName("");
+      setGestionFileBase64("");
       setInputValue("");
       setTimeout(scrollToBottom, 100);
       return;
     }
+
+    // Para otros tipos, validar que haya contenido
+    if (!messageContent) return;
 
     await sendMessage(messageContent, requestType);
     setInputValue("");
